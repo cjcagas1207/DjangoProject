@@ -1,0 +1,30 @@
+<div class="mt-6 p-4 bg-white rounded-md shadow-sm">
+    <h3 class="text-lg font-semibold mb-3">Score Breakdown</h3>
+    <table class="min-w-full border text-sm rounded">
+        <thead class="bg-gray-100">
+            <tr>
+                <th class="px-3 py-2 text-left">Category</th>
+                <th class="px-3 py-2 text-left">Score</th>
+                <th class="px-3 py-2 text-left">Maximum</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="px-3 py-2">Qualifications</td>
+                <td class="px-3 py-2">{{ application.score.qualifications_score|floatformat:1 }}</td>
+                <td class="px-3 py-2">40</td>
+            </tr>
+            <tr>
+                <td class="px-3 py-2">Skills</td>
+                <td class="px-3 py-2">{{ application.score.skills_score|floatformat:1 }}</td>
+                <td class="px-3 py-2">30</td>
+            </tr>
+            <tr>
+                <td class="px-3 py-2">Experience</td>
+                <td class="px-3 py-2">{{ application.score.experience_score|floatformat:1 }}</td>
+                <td class="px-3 py-2">30</td>
+            </tr>
+            <!-- Add more rows here if your scoring system includes education, engagement, etc. -->
+        </tbody>
+    </table>
+</div>

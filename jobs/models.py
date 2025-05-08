@@ -1,4 +1,3 @@
-# models.py
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -20,8 +19,11 @@ class Job(models.Model):
     description = models.TextField()
     company_name = models.CharField(max_length=255)
     location = models.CharField(max_length=255)
-    date_posted = models.DateTimeField(auto_now_add=True)
-    posted_by = models.ForeignKey(User, on_delete=models.CASCADE)  # employer
+    posted_date = models.DateTimeField(auto_now_add=True)
+    posted_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    qualifications_required = models.TextField(blank=True)
+    skills_required = models.TextField(blank=True)
+    experience_required = models.TextField(blank=True)
 
     def __str__(self):
         return self.title
@@ -55,23 +57,26 @@ class ResumeApplication(models.Model):
     phone = models.CharField(max_length=20)
     location = models.CharField(max_length=100)
     title = models.CharField(max_length=100)
-    objective = models.TextField()
+    qualifications = models.TextField()
+    experience = models.TextField()
+    objective = models.TextField(blank=True, null=True)
+    skills = models.JSONField(default=list, blank=True)
+    experiences = models.JSONField(default=list, blank=True)
+    education = models.JSONField(default=list, blank=True)
     submitted_at = models.DateTimeField(default=timezone.now)
 
-    experiences = models.JSONField()
-    education = models.JSONField()
-    skills = models.JSONField(blank=True, default=list)
-    seminars = models.JSONField(blank=True, default=list)
-    references = models.JSONField(blank=True, default=list)
-
     def compute_score(self):
-        from .utils.scoring import score_job_applicant
-        from .models import ResumeScore
-        # Simplified debug version for clarity
+        from jobs.utils.scoring import score_job_applicant
         result = score_job_applicant(self)
         ResumeScore.objects.update_or_create(
             resume=self,
-            defaults=result
+            defaults={
+                'job_match': result['job_match'],
+                'final_score': result['final_score'],
+                'qualifications_score': result['details'].get('qualifications', 0),
+                'skills_score': result['details'].get('skills', 0),
+                'experience_score': result['details'].get('experience', 0),
+            }
         )
 
     def __str__(self):
@@ -81,29 +86,11 @@ class ResumeApplication(models.Model):
 class ResumeScore(models.Model):
     resume = models.OneToOneField(ResumeApplication, on_delete=models.CASCADE, related_name='score')
     job_match = models.CharField(max_length=100)
-
-    aspiration_motivational = models.FloatField(default=0.0)
-    aspiration_behavioral = models.FloatField(default=0.0)
-    ability_competency = models.FloatField(default=0.0)
-    ability_learning = models.FloatField(default=0.0)
-    engagement = models.FloatField(default=0.0)
-
-    aspiration_score = models.FloatField(default=0.0)
-    ability_score = models.FloatField(default=0.0)
-    engagement_score = models.FloatField(default=0.0)
-    aea_total = models.FloatField(default=0.0)
-
-    education_score = models.FloatField(default=0.0)
+    qualifications_score = models.FloatField(default=0.0)
+    skills_score = models.FloatField(default=0.0)
     experience_score = models.FloatField(default=0.0)
     final_score = models.FloatField(default=0.0)
-
-    effective_aspiration_max = models.FloatField(default=30.0)
-    effective_ability_max = models.FloatField(default=30.0)
-    effective_engagement_max = models.FloatField(default=30.0)
-    effective_aea_max = models.FloatField(default=90.0)
-    effective_total_max = models.FloatField(default=105.0)
-
     computed_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Score for {self.resume.name} - {self.final_score}"
+        return f"Score for {self.resume.name} - {self.final_score:.2f}"

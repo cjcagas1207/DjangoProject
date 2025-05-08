@@ -5,6 +5,8 @@ from django.contrib import messages
 from django.db import IntegrityError
 from .models import Job, Application, User, Profile, ResumeApplication
 from datetime import datetime
+import json
+import ast
 # from .forms import RegisterForm, CustomLoginForm, ApplicationForm
 
 
@@ -101,91 +103,28 @@ def job_detail(request, job_id):
 
 
 @login_required # Ensure user is logged in to apply
+@login_required
 def apply_to_job(request, job_id):
     job = get_object_or_404(Job, id=job_id)
 
-    # Check if the user has already applied using the standard Application model
     if Application.objects.filter(user=request.user, job=job).exists():
         messages.warning(request, "You have already applied for this job.")
         return redirect('job_detail', job_id=job.id)
 
     if request.method == 'POST':
-        # Collect fixed fields from POST data
         name = request.POST.get('name')
         email = request.POST.get('email')
         phone = request.POST.get('phone')
         location = request.POST.get('location')
-        title = request.POST.get('title') # Applicant's professional title
-        objective = request.POST.get('objective')
+        title = request.POST.get('title')
 
-        # --- Parse Experience --- 
-        experience_titles = request.POST.getlist('experience_title[]')
-        experience_companies = request.POST.getlist('experience_company[]')
-        experience_locations = request.POST.getlist('experience_location[]')
-        experience_durations = request.POST.getlist('experience_duration[]') # Changed from start/end dates
-        experience_employment_types = request.POST.getlist('experience_employment_type[]') # Added
-        experience_descriptions = request.POST.getlist('experience_description[]')
+        qualifications = request.POST.get('qualifications')
+        experience = request.POST.get('experience')
 
-        experiences = []
-        for i in range(len(experience_titles)):
-            experiences.append({
-                'title': experience_titles[i],
-                'company': experience_companies[i],
-                'location': experience_locations[i] if i < len(experience_locations) else '',
-                'duration': experience_durations[i] if i < len(experience_durations) else '', # Use duration
-                'employment_type': experience_employment_types[i] if i < len(experience_employment_types) else '', # Add employment type
-                'description': experience_descriptions[i],
-            })
+        # 🧠 NEW: Clean skill input
+        skills_raw = request.POST.get('skills', '')
+        skills_list = [s.strip() for s in skills_raw.split(',') if s.strip()]  # from comma-separated string
 
-        # --- Parse Education --- 
-        institutions = request.POST.getlist('education_institution[]')
-        addresses = request.POST.getlist('education_address[]') # Added
-        courses = request.POST.getlist('education_course[]') # Changed from degree
-        years = request.POST.getlist('education_year[]')
-        # education_details = request.POST.getlist('education_details[]') # Removed, not in form
-
-        education = []
-        for i in range(len(institutions)):
-            education.append({
-                'institution': institutions[i],
-                'address': addresses[i] if i < len(addresses) else '', # Add address
-                'course': courses[i] if i < len(courses) else '', # Use course
-                'year': years[i] if i < len(years) else '', # Use year range
-                # 'details': education_details[i] if i < len(education_details) else '', # Removed
-            })
-
-        # --- Parse Skills --- 
-        skills = request.POST.getlist('skill_name[]')
-
-        # --- Parse Seminars --- 
-        seminar_titles = request.POST.getlist('seminar_title[]')
-        seminar_organizers = request.POST.getlist('seminar_organizer[]')
-        seminar_dates = request.POST.getlist('seminar_date[]')
-
-        seminars = []
-        for i in range(len(seminar_titles)):
-            seminars.append({
-                'title': seminar_titles[i],
-                'organizer': seminar_organizers[i] if i < len(seminar_organizers) else '',
-                'date': seminar_dates[i] if i < len(seminar_dates) else '',
-            })
-
-        # --- Parse References --- 
-        reference_names = request.POST.getlist('reference_name[]')
-        reference_positions = request.POST.getlist('reference_position[]')
-        reference_companies = request.POST.getlist('reference_company[]')
-        reference_contacts = request.POST.getlist('reference_contact[]')
-
-        references = []
-        for i in range(len(reference_names)):
-            references.append({
-                'name': reference_names[i],
-                'position': reference_positions[i] if i < len(reference_positions) else '',
-                'company': reference_companies[i] if i < len(reference_companies) else '',
-                'contact': reference_contacts[i] if i < len(reference_contacts) else '',
-            })
-
-        # Save the detailed resume application
         resume_app = ResumeApplication.objects.create(
             job=job,
             name=name,
@@ -193,37 +132,29 @@ def apply_to_job(request, job_id):
             phone=phone,
             location=location,
             title=title,
-            objective=objective,
-            experiences=experiences,
-            education=education,
-            skills=skills,
-            seminars=seminars, # Add seminars
-            references=references, # Add references
+            qualifications=qualifications,
+            experience=experience,
+            skills=skills_list,  # ✅ stores as list in JSONField
         )
 
-        # Trigger the scoring process
         try:
             resume_app.compute_score()
         except Exception as e:
-            # Log the error or handle it appropriately
-            # This prevents scoring errors from breaking the application process
-            print(f"Error computing score for application {resume_app.id}: {e}") 
+            print(f"[ERROR] compute_score failed: {e}")
 
-        # ALSO create the standard Application record linking user and job
         try:
             Application.objects.create(
                 user=request.user,
-                job=job,
+                job=job
             )
-            messages.success(request, "Your application was submitted successfully!")
-        except IntegrityError: # Catch potential unique_together constraint violation
-             messages.warning(request, "You have already applied for this job (concurrent request).")
-             resume_app.delete()
-             return redirect('job_detail', job_id=job.id)
+            messages.success(request, "Application submitted successfully.")
+        except IntegrityError:
+            messages.warning(request, "Concurrent submission detected.")
+            resume_app.delete()
+            return redirect('job_detail', job_id=job.id)
 
-        return redirect('seeker_dashboard') # Redirect to dashboard to see the application
+        return redirect('seeker_dashboard')
 
-    # If GET request, render the form
     return render(request, 'apply_to_job.html', {'job': job})
 
 @login_required
@@ -239,7 +170,7 @@ def employer_dashboard(request):
         profile = Profile.objects.create(user=request.user, role='employer')
     
     # Fetch jobs posted by the current employer (user) with their application counts
-    jobs = Job.objects.filter(posted_by=request.user).order_by('-date_posted')
+    jobs = Job.objects.filter(posted_by=request.user).order_by('-posted_date')
     
     # Add application count to each job
     for job in jobs:
@@ -277,16 +208,24 @@ def create_job(request):
         title = request.POST.get('title')
         description = request.POST.get('description')
         location = request.POST.get('location')
-        company_name = request.user.username  # or use a company profile if you have one
+        company_name = request.user.username  # or company profile if separate
+
+        qualifications = request.POST.get('qualifications_required')
+        skills = request.POST.get('skills_required')
+        experience = request.POST.get('experience_required')
 
         Job.objects.create(
             title=title,
             description=description,
             location=location,
             company_name=company_name,
-            posted_by=request.user
+            posted_by=request.user,
+            qualifications_required=qualifications,
+            skills_required=skills,
+            experience_required=experience
         )
         return redirect('employer_dashboard')
+
     return render(request, 'create_job.html')
 
 @login_required
@@ -297,6 +236,9 @@ def edit_job(request, job_id):
         job.title = request.POST.get('title')
         job.description = request.POST.get('description')
         job.location = request.POST.get('location')
+        job.qualifications_required = request.POST.get('qualifications_required')
+        job.skills_required = request.POST.get('skills_required')
+        job.experience_required = request.POST.get('experience_required')
         job.save()
         return redirect('employer_dashboard')
 
@@ -313,31 +255,26 @@ def delete_job(request, job_id):
     return render(request, 'delete_job.html', {'job': job})
 
 
+
 def view_application(request, application_id):
-    # Fetch the detailed ResumeApplication object
     application = get_object_or_404(ResumeApplication, id=application_id)
 
-    # Prepare context data matching the template's variable names,
-    # using the actual data stored in the ResumeApplication model.
-    context_data = {
-        'application': application, # Pass the whole object for potential use
+    context = {
+        'application': application,
         'name': application.name,
-        'title': application.title, # Professional Title from application
-        'objective': application.objective,
+        'title': application.title,
         'contact_info': {
             'location': application.location,
             'phone': application.phone,
             'email': application.email,
         },
-        'experience': application.experiences or [], # Pass the list directly
-        'education': application.education or [],   # Pass the list directly
-        'skills': application.skills or [],       # Pass the list directly
-        'trainings': application.seminars or [],    # Map model's 'seminars' to template's 'trainings'
-        'references': application.references or [], # Pass the list directly
+        'objective': application.objective or "No objective provided.",
+        'experience': application.experiences or "No work experience provided.",
+        'education': application.education or "No educational background provided.",
+        'skills': application.skills or [],
     }
 
-    # Render the template with the application data
-    return render(request, 'view_application.html', context_data)
+    return render(request, 'view_application.html', context)
 
 
 @login_required
@@ -361,91 +298,54 @@ def view_applicants(request, job_id):
     return render(request, 'view_applicants.html', context)
 
 def view_score_details(request, application_id):
-    """
-    View detailed score breakdown for a specific application with comparison to other applicants
-    """
     application = get_object_or_404(ResumeApplication, id=application_id)
-    
-    # Check if the user is authorized (employer who posted the job)
-    if not request.user.is_authenticated:
-        return redirect('login')
-        
-    if not hasattr(request.user, 'profile') or request.user.profile.role != 'employer' or application.job.posted_by != request.user:
-        messages.error(request, "You don't have permission to view this application's score.")
+
+    # Authorization check
+    if request.user.profile.role != 'employer' or application.job.posted_by != request.user:
+        messages.error(request, "You don't have permission to view this score.")
         return redirect('seeker_dashboard')
-    
-    # Check if score exists for this application
+
+    # Score check
     if not hasattr(application, 'score'):
-        # Try to compute the score if it doesn't exist
         try:
             application.compute_score()
-            messages.success(request, "Score has been calculated successfully.")
+            messages.success(request, "Score calculated.")
         except Exception as e:
-            messages.warning(request, f"Could not calculate score for this application: {str(e)}")
+            messages.warning(request, f"Score calculation failed: {e}")
             return redirect('view_application', application_id=application_id)
-    
-    # Get job-related information for context
+
     job = application.job
-    
-    # Get statistics for comparison
-    all_scores = []
-    job_level_scores = []
-    
-    # Get all applications for this job with scores
-    job_applications = ResumeApplication.objects.filter(job=job).select_related('score')
-    valid_applications = [app for app in job_applications if hasattr(app, 'score') and app.score]
-    
-    if valid_applications:
-        # Calculate average and highest scores for comparison
-        all_scores = [app.score.final_score for app in valid_applications]
-        avg_score = sum(all_scores) / len(all_scores)
-        highest_score = max(all_scores) if all_scores else 0
-        
-        # Calculate statistics for applications with same job match level
-        job_level = application.score.job_match if hasattr(application, 'score') else None
-        if job_level:
-            job_level_apps = [app for app in valid_applications 
-                              if app.score.job_match == job_level]
-            job_level_scores = [app.score.final_score for app in job_level_apps]
-            avg_level_score = sum(job_level_scores) / len(job_level_scores) if job_level_scores else 0
-            highest_level_score = max(job_level_scores) if job_level_scores else 0
-            rank_in_level = sorted(job_level_scores, reverse=True).index(application.score.final_score) + 1 if application.score else 0
-        else:
-            avg_level_score = 0
-            highest_level_score = 0
-            rank_in_level = 0
-        
-        # Calculate overall rank
-        rank_overall = sorted(all_scores, reverse=True).index(application.score.final_score) + 1 if application.score else 0
-    else:
-        avg_score = 0
-        highest_score = 0
-        avg_level_score = 0
-        highest_level_score = 0
-        rank_overall = 1
-        rank_in_level = 1
-    
-    context = {
+    job_apps = ResumeApplication.objects.filter(job=job).select_related('score')
+    valid_apps = [a for a in job_apps if hasattr(a, 'score') and a.score]
+
+    stats = {
+        'total_applicants': len(valid_apps),
+        'avg_score': 0,
+        'avg_level_score': 0,
+        'highest_score': 0,
+        'highest_level_score': 0,
+        'rank_overall': 1,
+        'rank_in_level': 1,
+        'percentile': 100
+    }
+
+    if valid_apps:
+        scores = [a.score.final_score for a in valid_apps]
+        stats['avg_score'] = sum(scores) / len(scores)
+        stats['highest_score'] = max(scores)
+
+        level = application.score.job_match
+        same_level = [a.score.final_score for a in valid_apps if a.score.job_match == level]
+        stats['avg_level_score'] = sum(same_level) / len(same_level) if same_level else 0
+        stats['highest_level_score'] = max(same_level) if same_level else 0
+
+        stats['rank_overall'] = sorted(scores, reverse=True).index(application.score.final_score) + 1
+        stats['rank_in_level'] = sorted(same_level, reverse=True).index(application.score.final_score) + 1 if same_level else 1
+
+        stats['percentile'] = round(100 * (1 - ((stats['rank_overall'] - 1) / len(valid_apps))))
+
+    return render(request, 'score_detail.html', {
         'application': application,
         'job': job,
-        'stats': {
-            'total_applicants': len(valid_applications),
-            'avg_score': round(avg_score, 2),
-            'highest_score': round(highest_score, 2),
-            'avg_level_score': round(avg_level_score, 2),
-            'highest_level_score': round(highest_level_score, 2),
-            'rank_overall': rank_overall,
-            'rank_in_level': rank_in_level,
-            'percentile': round(100 * (1 - (rank_overall - 1) / len(valid_applications))) if len(valid_applications) > 1 else 100
-        }
-    }
-    
-    # Add action parameter if provided (e.g., for rescoring)
-    if request.GET.get('action') == 'rescore':
-        try:
-            application.compute_score()
-            messages.success(request, "Application has been rescored successfully.")
-        except Exception as e:
-            messages.error(request, f"Error rescoring application: {str(e)}")
-    
-    return render(request, 'score_detail.html', context)
+        'stats': stats
+    })
