@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Apply to Job{% endblock %}
+
+{% block content %}
+<div class="container mx-auto max-w-3xl mt-10 mb-10 px-4">
+  <div class="bg-white p-8 rounded-lg shadow-md">
+    <h2 class="text-2xl font-semibold text-center mb-6">Apply for: {{ job.title }}</h2>
+    <form id="resumeForm" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <!-- Personal Info -->
+      <h3 class="text-lg font-semibold mb-4 border-b pb-2">Personal Information</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input name="name" placeholder="Full Name" required class="col-span-2 border p-2 rounded" />
+        <input name="title" placeholder="Professional Title" required class="col-span-2 border p-2 rounded" />
+        <input name="email" type="email" placeholder="Email" required class="border p-2 rounded" />
+        <input name="phone" type="tel" placeholder="Phone" required class="border p-2 rounded" />
+        <input name="location" placeholder="Location" required class="col-span-2 border p-2 rounded" />
+        <textarea name="objective" placeholder="Career Objective" required class="col-span-2 border p-2 rounded h-24"></textarea>
+      </div>
+
+      <!-- Experience -->
+      <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Experience</h3>
+      <div id="experience-entries" class="space-y-4">
+        <div class="experience-entry border p-4 rounded space-y-2">
+          <input type="text" name="experience_title[]" placeholder="Job Title" required class="w-full border p-2 rounded" />
+          <input type="text" name="experience_company[]" placeholder="Company" required class="w-full border p-2 rounded" />
+          <input type="text" name="experience_location[]" placeholder="Location" required class="w-full border p-2 rounded" />
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" name="experience_duration[]" placeholder="Duration (e.g., Jan 2022 - Present)" required class="border p-2 rounded" />
+            <input type="text" name="experience_employment_type[]" placeholder="Employment Type" class="border p-2 rounded" />
+          </div>
+          <textarea name="experience_description[]" placeholder="Description" required class="w-full border p-2 rounded h-24"></textarea>
+        </div>
+      </div>
+      <button type="button" id="add-experience" class="mt-2 text-indigo-600 text-sm">+ Add Experience</button>
+
+      <!-- Education -->
+      <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Education</h3>
+      <div id="education-entries" class="space-y-4">
+        <div class="education-entry border p-4 rounded space-y-2">
+          <input type="text" name="education_institution[]" placeholder="Institution" required class="w-full border p-2 rounded" />
+          <input type="text" name="education_address[]" placeholder="Address" required class="w-full border p-2 rounded" />
+          <input type="text" name="education_course[]" placeholder="Course" required class="w-full border p-2 rounded" />
+          <input type="text" name="education_year[]" placeholder="Year Completed (e.g., 2019 - 2023)" required class="w-full border p-2 rounded" />
+        </div>
+      </div>
+      <button type="button" id="add-education" class="mt-2 text-indigo-600 text-sm">+ Add Education</button>
+
+      <!-- Skills -->
+      <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Skills</h3>
+      <div id="skills-entries" class="space-y-4">
+        <div class="skill-entry border p-4 rounded space-y-2">
+          <input type="text" name="skill_name[]" placeholder="Skill (e.g., Python, Communication)" required class="w-full border p-2 rounded" />
+        </div>
+      </div>
+      <button type="button" id="add-skill" class="mt-2 text-indigo-600 text-sm">+ Add Skill</button>
+
+      <!-- Seminars & Trainings -->
+      <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">Seminars & Trainings Attended</h3>
+      <div id="seminar-entries" class="space-y-4">
+        <div class="seminar-entry border p-4 rounded space-y-2">
+          <input type="text" name="seminar_title[]" placeholder="Seminar Title" required class="w-full border p-2 rounded" />
+          <input type="text" name="seminar_organizer[]" placeholder="Organizer" required class="w-full border p-2 rounded" />
+          <input type="text" name="seminar_date[]" placeholder="Date (e.g., March 2023)" required class="w-full border p-2 rounded" />
+        </div>
+      </div>
+      <button type="button" id="add-seminar" class="mt-2 text-indigo-600 text-sm">+ Add Seminar</button>
+
+      <!-- References -->
+      <h3 class="text-lg font-semibold mt-6 mb-4 border-b pb-2">References</h3>
+      <div id="references-entries" class="space-y-4">
+        <div class="reference-entry border p-4 rounded space-y-2">
+          <input type="text" name="reference_name[]" placeholder="Name" required class="w-full border p-2 rounded" />
+          <input type="text" name="reference_position[]" placeholder="Position" required class="w-full border p-2 rounded" />
+          <input type="text" name="reference_company[]" placeholder="Company" required class="w-full border p-2 rounded" />
+          <input type="text" name="reference_contact[]" placeholder="Contact Info (Phone or Email)" required class="w-full border p-2 rounded" />
+        </div>
+      </div>
+      <button type="button" id="add-reference" class="mt-2 text-indigo-600 text-sm">+ Add Reference</button>
+
+      <!-- Submit Button -->
+      <div class="text-right mt-6">
+        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Submit Application</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- JavaScript for cloning entries -->
+<script>
+  $('#add-experience').on('click', function() {
+    $('#experience-entries').append($('#experience-entries .experience-entry:first').clone());
+  });
+  $('#add-education').on('click', function() {
+    $('#education-entries').append($('#education-entries .education-entry:first').clone());
+  });
+  $('#add-skill').on('click', function() {
+    $('#skills-entries').append($('#skills-entries .skill-entry:first').clone());
+  });
+  $('#add-reference').on('click', function() {
+    $('#references-entries').append($('#references-entries .reference-entry:first').clone());
+  });
+  $('#add-seminar').on('click', function() {
+    $('#seminar-entries').append($('#seminar-entries .seminar-entry:first').clone());
+  });
+</script>
+{% endblock %}

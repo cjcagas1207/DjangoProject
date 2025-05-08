@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Post a New Job{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto p-6 bg-white shadow mt-10 rounded">
+  <h2 class="text-2xl font-semibold mb-6">Post a New Job</h2>
+  <form method="POST">
+    {% csrf_token %}
+
+    <div class="mb-4">
+      <label for="title" class="block mb-1 font-medium">Job Title</label>
+      <input type="text" id="title" name="title" placeholder="e.g., Software Developer" class="w-full border rounded px-4 py-2" required>
+    </div>
+
+    <div class="mb-4">
+      <label for="location" class="block mb-1 font-medium">Location</label>
+      <input type="text" id="location" name="location" placeholder="e.g., Davao City" class="w-full border rounded px-4 py-2" required>
+    </div>
+
+    <div class="mb-4">
+      <label for="description" class="block mb-1 font-medium">Job Description</label>
+      <textarea id="description" name="description" placeholder="Enter the job details and responsibilities" class="w-full border rounded px-4 py-2" rows="6" required></textarea>
+    </div>
+
+    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Post Job</button>
+  </form>
+</div>
+{% endblock %}

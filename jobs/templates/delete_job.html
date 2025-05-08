@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-xl mx-auto p-6 bg-white shadow mt-10 rounded text-center">
+    <h2 class="text-xl font-semibold mb-4">Are you sure you want to delete this job?</h2>
+    <p class="mb-6">{{ job.title }} - {{ job.location }}</p>
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Delete</button>
+        <a href="{% url 'employer_dashboard' %}" class="ml-4 text-gray-700 underline">Cancel</a>
+    </form>
+</div>
+{% endblock %}

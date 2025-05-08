@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Job Seeker Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto mt-8">
+  <h1 class="text-3xl font-bold mb-6">Welcome Seeker, {{ user.username }} 👋</h1>
+
+  <!-- Dashboard Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    <!-- Profile Card - RESTORED -->
+    <div class="bg-white p-6 rounded-lg shadow md:col-span-1">
+      <h2 class="text-xl font-semibold mb-2">Your Profile</h2>
+      <p><strong>Username:</strong> {{ user.username }}</p>
+      <p><strong>Email:</strong> {{ user.email }}</p>
+      <p><strong>Role:</strong> {{ user.profile.get_role_display }}</p>
+    </div>
+
+    <!-- Your Job Applications -->
+    <div class="bg-white p-6 rounded-lg shadow md:col-span-2">
+      <h2 class="text-xl font-semibold mb-4">Your Job Applications</h2>
+      {% if applications %}
+        <ul class="space-y-4">
+          {% for app in applications %}
+            <li class="border-b pb-2">
+              <div class="flex justify-between items-center">
+                <div>
+                  <p class="font-medium">{{ app.job.title }}</p>
+                  <p class="text-sm text-gray-500">
+                    {{ app.job.company_name }}
+                    {% if app.job.employer %}
+                      &middot; Posted by {{ app.job.employer.get_full_name|default:app.job.employer.username }}
+                    {% endif %}
+                    &middot; {{ app.application_date|date:"Y-m-d" }}
+                    {% if app.status %}
+                      &middot; <span class="font-semibold">Status:</span> {{ app.get_status_display }}
+                    {% endif %}
+                  </p>
+                </div>
+                <a href="{% url 'job_detail' job_id=app.job.id %}" class="text-blue-600 hover:underline text-sm">View Job</a>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-gray-600">You haven't applied to any jobs yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Call to Action -->
+  <div class="mt-8 text-center">
+    <a href="{% url 'job_list' %}" class="inline-block bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 text-lg font-medium">
+      Browse Available Jobs
+    </a>
+  </div>
+</div>
+{% endblock %}

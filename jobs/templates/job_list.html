@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Job Listings{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto mt-8">
+    <h1 class="text-3xl font-bold mb-6">Available Jobs</h1>
+    
+    <!-- Job Listings -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for job in jobs %}
+        <div class="bg-white p-6 rounded-lg shadow hover:shadow-xl transition duration-300">
+            <h3 class="text-xl font-semibold">{{ job.title }}</h3>
+            <p class="text-sm text-gray-500">{{ job.company_name }}</p>
+            <p class="mt-2">{{ job.description|truncatewords:20 }}</p>
+            <a href="{% url 'job_detail' job.id %}" class="text-blue-600 hover:underline mt-4 block">View Details</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

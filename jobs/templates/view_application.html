@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Resume - {{ name }}{% endblock %}
+
+{% block content %}
+<style>
+  .resume-letter {
+    width: 816px;
+    background: #fff;
+    margin: 40px auto;
+    padding: 48px 60px;
+    box-shadow: 0 0 0 1px #e5e7eb, 0 4px 24px rgba(0,0,0,0.08);
+  }
+  h2 {
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 1.125rem;
+  }
+  @media print {
+    .resume-letter {
+      width: 8.5in;
+      height: 11in;
+      margin: 0;
+      padding: 0.5in 0.7in;
+      box-shadow: none;
+    }
+    .print\:hidden {
+      display: none !important;
+    }
+  }
+</style>
+
+<div class="resume-letter font-[Poppins] bg-white">
+  <!-- Header -->
+  <div class="text-left mb-6">
+    <h1 class="text-3xl font-bold">{{ name }}</h1>
+    <p class="text-lg font-medium">{{ title }}</p>
+    <p class="text-sm mt-2 text-gray-600">{{ contact_info.location }} | {{ contact_info.phone }} | 
+      <a href="mailto:{{ contact_info.email }}" class="text-blue-600 hover:underline">{{ contact_info.email }}</a>
+    </p>
+  </div>
+
+  <!-- Objective -->
+  <h2 class="mt-5">Objective</h2>
+  <hr class="my-2 border-gray-400">
+  <p class="mb-4 text-sm">{{ objective }}</p>
+
+  <!-- Personal Information -->
+  <h2 class="mt-6">Personal Information</h2>
+  <hr class="my-2 border-gray-400">
+  <ul class="list-disc pl-5 text-sm">
+    <li>Address: {{ contact_info.location }}</li>
+    <li>Contact Number: {{ contact_info.phone }}</li>
+    <li>Email Address: {{ contact_info.email }}</li>
+  </ul>
+
+  <!-- Work Experience -->
+  <h2 class="mt-6">Work Experience</h2>
+  <hr class="my-2 border-gray-400">
+  {% for job in experience %}
+  <div class="mb-4">
+    <h3 class="font-semibold text-sm">{{ job.title }} – {{ job.company }}</h3>
+    <p class="text-sm text-gray-600">{{ job.location }} | {{ job.start_date }} – {{ job.end_date|default:"Present" }}</p>
+    <ul class="list-disc pl-5 text-sm mt-1">
+      {% for line in job.description.splitlines %}
+      <li>{{ line }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+
+  <!-- Educational Background -->
+  <h2 class="mt-6">Educational Background</h2>
+  <hr class="my-2 border-gray-400">
+  {% for edu in education %}
+  <div class="mb-4">
+    <h3 class="font-semibold text-sm">{{ edu.degree }}</h3>
+    <p class="text-sm text-gray-600">{{ edu.institution }} | {{ edu.year }}</p>
+    {% if edu.details %}
+    <p class="text-sm mt-1">{{ edu.details }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <!-- Seminars & Trainings Attended -->
+  {% if trainings %}
+  <h2 class="mt-6">Seminars & Trainings Attended</h2>
+  <hr class="my-2 border-gray-400">
+  {% for training in trainings %}
+  <div class="mb-4">
+    <p class="font-medium text-sm">{{ training.title }}</p>
+    <p class="text-sm text-gray-600">{{ training.date }}</p>
+    <ul class="list-disc pl-5 text-sm mt-1">
+      {% for point in training.details.splitlines %}
+      <li>{{ point }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Skills -->
+  <h2 class="mt-6">Skills & Competencies</h2>
+  <hr class="my-2 border-gray-400">
+  <ul class="list-disc pl-5 text-sm space-y-1">
+    {% for skill in skills %}
+    <li>{{ skill }}</li>
+    {% endfor %}
+  </ul>
+
+  <!-- Character References -->
+  {% if references %}
+  <h2 class="mt-6">Character References</h2>
+  <hr class="my-2 border-gray-400">
+  {% for ref in references %}
+  <div class="mb-3">
+    <p class="font-medium text-sm">{{ ref.name }}</p>
+    <p class="text-sm">{{ ref.position }}, {{ ref.company }}</p>
+    <p class="text-sm">{{ ref.contact }}</p>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Score Section -->
+  {% if application.score %}
+  <div class="mt-6 border-t pt-4 flex justify-between items-center">
+    <div>
+      <h3 class="text-lg font-semibold">Application Score</h3>
+      <p class="text-sm text-gray-600">Job Match: <span class="font-medium">{{ application.score.job_match }}</span></p>
+      <p class="text-sm text-gray-600">
+        Total Score: <span class="font-medium text-blue-700">{{ application.score.final_score|floatformat:1 }}</span> out of {{ application.score.effective_total_max|floatformat:1 }}
+      </p>
+    </div>
+    <a href="{% url 'view_score_details' application_id=application.id %}" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
+      View Detailed Score
+    </a>
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-500 mt-6 border-t pt-4">Score not yet calculated.</p>
+  {% endif %}
+</div>
+{% endblock %}

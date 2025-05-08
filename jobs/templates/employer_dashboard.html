@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Employer Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-6 mt-10">
+    <!-- Display Employer's Name -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold mb-6">Welcome Admin, {{ request.user.username }} 👋</h1>
+        <p class="text-gray-600">Here are the jobs you have posted.</p>
+    </div>
+
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Your Posted Jobs</h2>
+        <a href="{% url 'create_job' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Post New Job</a>
+    </div>
+
+    {% if jobs %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for job in jobs %}
+                <div class="bg-white border rounded-lg shadow-lg overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 class="text-xl font-semibold text-gray-800">{{ job.title }}</h3>
+                                <p class="text-gray-600">{{ job.location }}</p>
+                                <p class="text-sm text-gray-500 mt-1">Posted on {{ job.posted_date|date:"F d, Y" }}</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <a href="{% url 'edit_job' job.id %}" class="text-yellow-600 hover:text-yellow-800 text-xl" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'delete_job' job.id %}" class="text-red-600 hover:text-red-800 text-xl" title="Delete">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <p class="mt-4 text-gray-700">{{ job.description|truncatewords:25 }}</p>
+
+                        <!-- Employer's Name -->
+                        <p class="mt-2 text-gray-600 text-sm">Posted by: <strong>{{ job.posted_by.username }}</strong></p>
+
+                        <!-- Applicants Section -->
+                        <div class="mt-6">
+                            <h4 class="text-lg font-semibold text-gray-800">Applicants</h4>
+                            {% if job.applications.all %}
+                                <div class="mt-4">
+                                    <a href="{% url 'view_applicants' job.id %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">View Applicants</a>
+                                </div>
+                            {% else %}
+                                <p class="text-gray-500 mt-2">No applicants yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-gray-600">You haven't posted any jobs yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
