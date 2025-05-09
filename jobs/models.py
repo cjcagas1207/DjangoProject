@@ -64,6 +64,8 @@ class ResumeApplication(models.Model):
     experiences = models.JSONField(default=list, blank=True)
     education = models.JSONField(default=list, blank=True)
     submitted_at = models.DateTimeField(default=timezone.now)
+    training_hours = models.IntegerField(default=0)  # Added training_hours field
+    eligibility = models.TextField(blank=True, default='')  # Also adding eligibility which appears to be used in scoring.py
 
     def compute_score(self):
         from jobs.utils.scoring import score_job_applicant
